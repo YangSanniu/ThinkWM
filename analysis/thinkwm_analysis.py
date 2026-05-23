@@ -18,8 +18,8 @@ from glob import glob
 import warnings
 warnings.filterwarnings('ignore')
 
-DATA_ROOT = Path('/home/Tobf/Project/attentionWM/data')
-SUBJECTS = ['001', '006', '007', '008', '009', '010', '011', '012']
+DATA_ROOT = Path(__file__).resolve().parent.parent / 'data'
+SUBJECTS = []  # 默认空，通过命令行参数指定: python analysis/thinkwm_analysis.py 学号1 学号2
 
 # ============================================================
 # 加载
@@ -546,9 +546,11 @@ def _print_subject_report(sid):
 
 if __name__ == '__main__':
     import sys
-
-    sids = sys.argv[1:] if len(sys.argv) > 1 else SUBJECTS
-    valid_sids = [s for s in sids]
+    subject_ids = sys.argv[1:] if len(sys.argv) > 1 else SUBJECTS
+    if not subject_ids:
+        print("用法: python analysis/thinkwm_analysis.py 学号1 [学号2 ...]")
+        sys.exit(1)
+    valid_sids = [s for s in subject_ids]
     print(f"\n  thinkWM 数据分析报告")
     print(f"  {'═' * 50}")
 
@@ -560,7 +562,7 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"  [{sid}] 加载失败: {e}")
 
-    # Cross-subject summary (only for valid a×b format subjects)
+    # Cross-subject summary
     _report_header("跨被试汇总 (投入 vs 脱离)")
     cs = cross_subject_summary(valid_sids)
     if cs is not None and len(cs) > 0:

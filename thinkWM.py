@@ -20,6 +20,11 @@ SIZE_MATH = 0.048              # 中央数学题字体大小
 SIZE_GRID = SIZE_SQUARE / 3    # 九宫格中每个色块的大小
 DUR_MATH_TIMEOUT = 3.0         # 等式判断最长时限
 DUR_ITI = 1.0                  # 试次间隔
+DUR_ENCODE = 1.0               # 颜色编码时间
+DUR_FEEDBACK = 0.3             # 反馈时长
+DUR_PROBE_BLANK = 1.5          # 探测后空屏缓冲
+DUR_COUNTDOWN = 1.0            # 倒计时等待
+REST_MIN_SEC = 15              # block间最短休息(秒)
 BLOCK_Y_OFFSET = -0.02         # 色块整体下移量
 MATH_Y = 0.042                  # 数学题垂直位置 (居中于色块行间空隙)
 
@@ -331,7 +336,7 @@ class ThinkWMTask:
             pass
 
     def confirm_exit(self):
-        # 显示确认界面
+        """显示确认退出界面。返回 True=退出, False=继续。"""
         confirm_text = visual.TextStim(self.disp.win, text='确定要退出实验吗？数据将保存。\n按 Y 退出，按 N 继续', height=0.035, color='white')
         confirm_text.draw()
         self.disp.win.flip()
@@ -352,7 +357,8 @@ class ThinkWMTask:
             self.f.close()
             self.disp.win.close()
             core.quit()
-        # 如果按n或无，不做任何事
+            return True
+        return False
 
     def run_memory_test(self, current_color_indices):
         """九宫格记忆测试"""
@@ -508,7 +514,7 @@ class ThinkWMTask:
 
             if is_probe:
                 self.disp.fixation.color = 'yellow'
-                encode_frames = int(1.0 * self._hz)
+                encode_frames = int(DUR_ENCODE * self._hz)
                 for _ in range(encode_frames):
                     self.disp.fixation.draw()
                     for sq in self.disp.bg_squares:
@@ -519,7 +525,7 @@ class ThinkWMTask:
                 probe_count += 1
                 can_skip = math_count >= 5 and probe_count >= 1
                 self.disp.fixation.color = 'white'
-                blank_frames = int(1.0 * self._hz)
+                blank_frames = int(DUR_ITI * self._hz)
                 for _ in range(blank_frames):
                     self.disp.fixation.draw()
                     status_text.draw()
@@ -542,8 +548,7 @@ class ThinkWMTask:
 
                 if keys and keys[0] == 'escape':
                     self.confirm_exit()
-                    if keys[0] == 'escape':
-                        continue
+                    continue
                 if keys and keys[0] == 'space' and can_skip:
                     break
 
@@ -558,7 +563,7 @@ class ThinkWMTask:
 
                 # 反馈 (覆盖进度文字)
                 self.disp.feedback_frame.lineColor = 'green' if acc_practice else 'red'
-                fb_frames = int(0.3 * self._hz)
+                fb_frames = int(DUR_FEEDBACK * self._hz)
                 for _ in range(fb_frames):
                     self.disp.fixation.draw()
                     self.disp.math_text.draw()
@@ -566,7 +571,7 @@ class ThinkWMTask:
                     status_text.draw()
                     self.disp.win.flip()
 
-                blank_frames = int(1.0 * self._hz)
+                blank_frames = int(DUR_ITI * self._hz)
                 for _ in range(blank_frames):
                     self.disp.fixation.draw()
                     status_text.draw()
@@ -601,7 +606,7 @@ class ThinkWMTask:
                 height=0.04, color='white')
             cd_text.draw()
             self.disp.win.flip()
-            core.wait(1.0)
+            core.wait(DUR_COUNTDOWN)
 
         for b in range(self.dsgn.nblocks):
             self.monitor.reset_block()
@@ -629,7 +634,7 @@ class ThinkWMTask:
                     self.disp.fixation.color = 'yellow'
 
                     # 编码 1.0s
-                    encode_frames = int(1.0 * self._hz)
+                    encode_frames = int(DUR_ENCODE * self._hz)
                     for _ in range(encode_frames):
                         self.disp.fixation.draw()
                         for sq in self.disp.bg_squares:
@@ -641,7 +646,7 @@ class ThinkWMTask:
                     self.monitor.mark_probe()
 
                     self.disp.fixation.color = 'white'
-                    blank_frames = int(1.5 * self._hz)  # 探测后缓冲，防错过下个试次
+                    blank_frames = int(DUR_PROBE_BLANK * self._hz)  # 探测后缓冲，防错过下个试次
                     for _ in range(blank_frames):
                         self.disp.fixation.draw()
                         self.disp.win.flip()
@@ -681,10 +686,9 @@ class ThinkWMTask:
                     if keys and keys[0] == 'escape':
                         self.confirm_exit()
                         # 取消退出后丢弃当前试次，不写入数据
-                        if keys[0] == 'escape':
-                            self.disp.fixation.draw()
-                            self.disp.win.flip()
-                            continue
+                        self.disp.fixation.draw()
+                        self.disp.win.flip()
+                        continue
 
                     # 判断正确性: F=正确, J=错误; 超时=错误
                     if keys is None:
@@ -696,7 +700,7 @@ class ThinkWMTask:
 
                     # 反馈 0.3s
                     self.disp.feedback_frame.lineColor = 'green' if acc else 'red'
-                    fb_frames = int(0.3 * self._hz)
+                    fb_frames = int(DUR_FEEDBACK * self._hz)
                     for _ in range(fb_frames):
                         self.disp.fixation.draw()
                         self.disp.math_text.draw()
@@ -704,7 +708,7 @@ class ThinkWMTask:
                         self.disp.win.flip()
 
                     # 空屏 1s
-                    blank_frames = int(1.0 * self._hz)
+                    blank_frames = int(DUR_ITI * self._hz)
                     for _ in range(blank_frames):
                         self.disp.fixation.draw()
                         self.disp.win.flip()
@@ -752,7 +756,7 @@ class ThinkWMTask:
             if b < self.dsgn.nblocks - 1:
                 blocks_done = b + 1
                 blocks_left = self.dsgn.nblocks - blocks_done
-                rest_min = 15  # 最短休息秒数
+                rest_min = REST_MIN_SEC
 
                 rest_text = visual.TextStim(self.disp.win,
                     text=(f"第 {blocks_done}/{self.dsgn.nblocks} 组完成\n\n"
@@ -792,7 +796,7 @@ class ThinkWMTask:
                         height=0.04, color='white')
                     cd_text.draw()
                     self.disp.win.flip()
-                    core.wait(1.0)
+                    core.wait(DUR_COUNTDOWN)
 
             else:
                 uploading = visual.TextStim(self.disp.win,

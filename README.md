@@ -69,7 +69,7 @@ python thinkWM.py
 2. 3 屏指导语（空格翻页）
 3. 练习阶段（5 道数学 + 1 次探测后可跳过）
 4. 正式实验，block 间休息 ≥ 15s
-5. 自动保存数据并上传
+5. 自动保存数据并尝试上传（默认上传到 webhook.site 测试地址，如需更换请修改 _upload_csv() 中的 url）
 
 ## 数据输出
 
@@ -93,17 +93,33 @@ python thinkWM.py
 
 ## 数据分析
 
+### 命令行（快速报告）
+
+```bash
+# 单个被试完整报告
+python analysis/thinkwm_analysis.py 学号
+
+# 多个被试对比
+python analysis/thinkwm_analysis.py 学号1 学号2
+```
+
+### 交互式（Python/ipython）
+
 ```python
 from analysis.thinkwm_analysis import load_subject, diff_analysis
 
-# 加载单个被试
+# 加载数据
 df = load_subject('学号')
 
-# 差异分析：比较脱离态 vs 投入态 WM
-result = diff_analysis(df, subjects=['学号'])
+# 按状态标签统计 WM
+from analysis.thinkwm_analysis import wm_by_state
+result = wm_by_state(df)
+
+# 脱离态 vs 投入态差异检验
+diff_analysis(df, subjects=['学号'])
 ```
 
-分析脚本支持：加载合并多 session 数据、按状态标签分组统计 WM、脱离/投入态差异检验、难度分层分析。详细用法见 `analysis/thinkwm_analysis.py` 模块文档。
+分析功能：加载合并多 session 数据、WM 按状态分组统计、脱离/投入态差异检验、难度分层分析、post-error 分析。详细见 `analysis/thinkwm_analysis.py` 模块文档。
 
 ## 关键发现（初步数据）
 
@@ -123,6 +139,15 @@ result = diff_analysis(df, subjects=['学号'])
 | J | 等式错误 |
 | ESC | 退出实验（需确认） |
 | 空格 | 翻页 / 跳过练习 |
+
+## 测试
+
+```bash
+python -m pytest tests/ -v    # 45 项，~1 秒
+```
+
+- **StateMonitor 测试**（32 项）：初始化、z-score 计算、ACC EWMA、状态标签分类、触发逻辑、边界情况
+- **数学题生成测试**（13 项）：操作数范围、真假答案、假答案偶性校验、格式验证
 
 ## 技术栈
 

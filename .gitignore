@@ -1,11 +1,24 @@
-*__pycache__*
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
 .pytest_cache/
+.python-version
+
+# Build artifacts
 dist/
 build/
 *.spec
 
+# IDE
 .vscode/
 .claude/
 CLAUDE.md
 
+# Experiment data
 data/
+
+# OS
+.DS_Store
+Thumbs.db
