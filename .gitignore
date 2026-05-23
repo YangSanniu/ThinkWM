@@ -1,0 +1,11 @@
+*__pycache__*
+.pytest_cache/
+dist/
+build/
+*.spec
+
+.vscode/
+.claude/
+CLAUDE.md
+
+data/
