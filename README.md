@@ -146,4 +146,4 @@ analysis/           — 分析脚本
 
 ## 许可
 
-仅供学术研究使用。
+MIT License，详见 [LICENSE](LICENSE)。
