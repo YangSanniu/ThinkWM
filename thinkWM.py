@@ -178,7 +178,11 @@ class ThinkWMConfig:
         np.random.seed(self.seed)
 
         # 设定保存路径 ./data/被试编号/
-        self.base_dir = os.path.dirname(__file__)
+        # PyInstaller exe: 存到 exe 所在目录；脚本: 存到脚本所在目录
+        if getattr(sys, 'frozen', False):
+            self.base_dir = os.path.dirname(sys.executable)
+        else:
+            self.base_dir = os.path.dirname(os.path.abspath(__file__))
         self.save_dir = os.path.join(self.base_dir, 'data', self.subj_name)
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
@@ -309,12 +313,17 @@ class ThinkWMTask:
     def _upload_csv(self):
         """上传 CSV 和设计文件到指定地址。失败不影响本地数据。"""
         url = 'https://webhook.site/ad8e3f1b-c9fb-4f75-aacd-aa3f48c6650e'
-        base = os.path.join(self.dsgn.save_dir,
-            f"{self.dsgn.subj_name}")
-        paths = [f"{base}_explog.csv", f"{base}_design.txt"]
-        paths = [p for p in paths if os.path.exists(p)]
-        if not paths:
+        base = os.path.join(self.dsgn.save_dir, self.dsgn.subj_name)
+        csv_path = f"{base}_explog.csv"
+        design_path = f"{base}_design.txt"
+
+        # 仅当 CSV 存在（有有效数据）时才上传
+        if not os.path.exists(csv_path) or os.path.getsize(csv_path) < 200:
             return
+
+        paths = [csv_path]
+        if os.path.exists(design_path) and os.path.getsize(design_path) > 50:
+            paths.append(design_path)
 
         boundary = '----thinkWM'
         body_parts = []
@@ -332,8 +341,10 @@ class ThinkWMTask:
             req = urllib.request.Request(url, data=body,
                 headers={'Content-Type': f'multipart/form-data; boundary={boundary}'})
             urllib.request.urlopen(req, timeout=10)
-        except Exception:
-            pass
+        except Exception as e:
+            # 仅静默网络/服务器错误，不静默编码/文件错误
+            if not isinstance(e, (urllib.error.URLError, OSError, TimeoutError)):
+                raise
 
     def confirm_exit(self):
         """显示确认退出界面。返回 True=退出, False=继续。"""
