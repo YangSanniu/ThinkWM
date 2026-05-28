@@ -6,7 +6,7 @@
 """
 
 import os, time, csv, random, sys
-import urllib.request
+import urllib.request, urllib.parse
 import numpy as np
 from datetime import datetime
 from psychopy import visual, core, event, tools, gui
@@ -169,15 +169,15 @@ class StateMonitor:
 
 class ThinkWMConfig:
     def __init__(self, gui_specs):
-        self.subj_name = str(gui_specs['Participant'])
-        self.student_id = str(gui_specs.get('StudentID', self.subj_name))
         self.student_name = str(gui_specs.get('StudentName', ''))
+        self.student_id = str(gui_specs.get('StudentID', ''))
         self.debug = gui_specs['Debug']
         self.seed = int(time.time())
         self.timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        self.subj_name = self.timestamp  # 用时间戳作为文件和目录标识
         np.random.seed(self.seed)
 
-        # 设定保存路径 ./data/被试编号/
+        # 设定保存路径 ./data/时间戳/
         # PyInstaller exe: 存到 exe 所在目录；脚本: 存到脚本所在目录
         if getattr(sys, 'frozen', False):
             self.base_dir = os.path.dirname(sys.executable)
@@ -311,40 +311,52 @@ class ThinkWMTask:
                               'Is_Probe', 'WM_Score'])
 
     def _upload_csv(self):
-        """上传 CSV 和设计文件到指定地址。失败不影响本地数据。"""
-        url = 'https://webhook.site/ad8e3f1b-c9fb-4f75-aacd-aa3f48c6650e'
-        base = os.path.join(self.dsgn.save_dir, self.dsgn.subj_name)
-        csv_path = f"{base}_explog.csv"
-        design_path = f"{base}_design.txt"
+        """通过 GitLab Generic Packages API 上传数据。
 
-        # 仅当 CSV 存在（有有效数据）时才上传
+        默认使用仓库内公开的 Deploy Token（仅 write_package_registry 权限，
+        只能上传数据包，不能读写代码或修改仓库设置）。
+        可通过环境变量 GITLAB_TOKEN 覆盖（格式 username:token）。"""
+        cred = os.environ.get('GITLAB_TOKEN',
+            'gitlab+deploy-token-23:gldt-neRU-zKLUxpiY3KXVze1')
+
+        project = 'YinXiran%2Fthinkwm'
+        pkg_name = 'thinkwm-data'
+        pkg_ver = datetime.now().strftime('%Y%m%d')
+        base_url = f'https://git.ustc.edu.cn/api/v4/projects/{project}/packages/generic/{pkg_name}/{pkg_ver}'
+
+        csv_path = os.path.join(self.dsgn.save_dir, f"{self.dsgn.subj_name}_explog.csv")
+        design_path = os.path.join(self.dsgn.save_dir, f"{self.dsgn.subj_name}_design.txt")
+
+        # 仅当 CSV 有效时才上传
         if not os.path.exists(csv_path) or os.path.getsize(csv_path) < 200:
             return
 
-        paths = [csv_path]
+        files = [(csv_path, f"{self.dsgn.subj_name}_explog.csv")]
         if os.path.exists(design_path) and os.path.getsize(design_path) > 50:
-            paths.append(design_path)
+            files.append((design_path, f"{self.dsgn.subj_name}_design.txt"))
 
-        boundary = '----thinkWM'
-        body_parts = []
-        for fpath in paths:
-            with open(fpath, 'rb') as f:
-                data = f.read()
-            fname = os.path.basename(fpath)
-            body_parts.append(
-                f'--{boundary}\r\n'
-                f'Content-Disposition: form-data; name="file"; filename="{fname}"\r\n\r\n'.encode()
-                + data)
-        body_parts.append(f'--{boundary}--\r\n'.encode())
-        body = b'\r\n'.join(body_parts)
-        try:
-            req = urllib.request.Request(url, data=body,
-                headers={'Content-Type': f'multipart/form-data; boundary={boundary}'})
-            urllib.request.urlopen(req, timeout=10)
-        except Exception as e:
-            # 仅静默网络/服务器错误，不静默编码/文件错误
-            if not isinstance(e, (urllib.error.URLError, OSError, TimeoutError)):
-                raise
+        # 认证: 带冒号 = Deploy Token (Basic Auth), 不带 = PAT (PRIVATE-TOKEN)
+        import base64
+        use_basic = ':' in cred
+
+        for fpath, fname in files:
+            try:
+                with open(fpath, 'rb') as f:
+                    data = f.read()
+                url = f"{base_url}/{urllib.parse.quote(fname)}"
+                req = urllib.request.Request(url, data=data, method='PUT')
+                req.add_header('Content-Type', 'application/octet-stream')
+                if use_basic:
+                    auth = base64.b64encode(cred.encode()).decode()
+                    req.add_header('Authorization', f'Basic {auth}')
+                else:
+                    req.add_header('PRIVATE-TOKEN', cred)
+                urllib.request.urlopen(req, timeout=30)
+            except urllib.error.HTTPError as e:
+                if e.code != 409:
+                    raise
+            except (urllib.error.URLError, OSError, TimeoutError):
+                pass
 
     def confirm_exit(self):
         """显示确认退出界面。返回 True=退出, False=继续。"""
@@ -867,7 +879,7 @@ if __name__ == "__main__":
         print("姓名和学号不能为空")
         core.quit()
 
-    design = ThinkWMConfig({'Participant': student_id, 'Debug': is_debug,
+    design = ThinkWMConfig({'Debug': is_debug,
                             'StudentName': student_name, 'StudentID': student_id})
     display = ThinkWMDisplay(design)
     task = ThinkWMTask(design, display)

@@ -71,11 +71,36 @@ python thinkWM.py
 2. 3 屏指导语（空格翻页）
 3. 练习阶段（5 道数学 + 1 次探测后可跳过）
 4. 正式实验，block 间休息 ≥ 15s
-5. 自动保存数据并尝试上传（默认上传到 webhook.site 测试地址，如需更换请修改 _upload_csv() 中的 url）
+5. 自动保存并上传数据到 GitLab（内置 Deploy Token，无需配置）
+
+## 数据上传
+
+实验数据自动上传到 USTC GitLab Generic Packages。代码内置了 **Deploy Token**（仅 `write_package_registry` 权限——只能上传数据包，不能读写代码或修改仓库）。
+
+**无需任何配置。** 直接运行实验，数据自动上传：
+
+```cmd
+thinkWM.exe
+```
+
+在以下位置查看数据：
+```
+https://git.ustc.edu.cn/YinXiran/thinkwm/-/packages
+```
+→ **thinkwm-data** 包 → 按日期分组（`YYYYMMDD`）
+
+如需覆盖内置 token（如 fork 仓库后用自己的），设置环境变量：
+
+```cmd
+set GITLAB_TOKEN=你的用户名:你的token
+thinkWM.exe
+```
+
+环境变量优先级高于内置 token。
 
 ## 数据输出
 
-`data/<学号>/<学号>_explog.csv`，28 列：
+`data/<时间戳>/<时间戳>_explog.csv`，28 列（时间戳 = 实验启动时间）：
 
 | 列 | 说明 |
 |----|------|
@@ -170,8 +195,6 @@ analysis/           — 分析脚本
 ## 引用
 
 相关论文：DeBettencourt, M. T., Keene, P. A., Awh, E., & Vogel, E. K. (2019). Real-time monitoring of attention fluctuations in the visual working memory system. *Nature Human Behaviour*, 3(8), 792–800.
-
-## 许可
 
 ## 免责声明
 

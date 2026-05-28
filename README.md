@@ -71,11 +71,38 @@ Startup flow:
 2. 4 instruction screens (space to advance)
 3. Practice phase (5 math + 1 probe trials, skippable)
 4. Main experiment with inter-block rests (≥ 15s)
-5. Auto-save & attempt upload
+5. Auto-save & upload to GitLab (Deploy Token built-in, just works™)
 
 ## Data Output
 
-`data/<subject_id>/<subject_id>_explog.csv`, 28 columns:
+## Data Upload
+
+Experiment data is automatically uploaded to the USTC GitLab Generic Packages registry via a built-in **Deploy Token** (scoped to `write_package_registry` only — can only upload data, cannot read code or modify repository settings).
+
+**No setup required.** Just run the experiment and data gets uploaded:
+
+```cmd
+thinkWM.exe
+```
+
+Data appears at:
+```
+https://git.ustc.edu.cn/YinXiran/thinkwm/-/packages
+```
+→ **thinkwm-data** package → grouped by date (`YYYYMMDD`)
+
+### Override with custom token
+
+If you want to use your own token (e.g., for a fork), set `GITLAB_TOKEN` environment variable in `username:token` format:
+
+```cmd
+set GITLAB_TOKEN=your-username:your-token
+thinkWM.exe
+```
+
+When `GITLAB_TOKEN` is set, it takes precedence over the built-in token.
+
+`data/<timestamp>/<timestamp>_explog.csv`, 28 columns (timestamp = session start time):
 
 | Column | Description |
 |--------|-------------|

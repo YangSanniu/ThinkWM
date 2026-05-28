@@ -6,6 +6,9 @@ __pycache__/
 .pytest_cache/
 .python-version
 
+# Exploratory analysis (cognitive anchoring model, paper drafts)
+archive/
+
 # Build artifacts
 dist/
 build/
