@@ -1,174 +1,176 @@
-# thinkWM — 认知负荷波动与视觉工作记忆编码
+# thinkWM — Cognitive Load & Visual Working Memory
 
-基于 PsychoPy 的闭环双任务实验平台，研究高认知负荷任务中投入波动对视觉工作记忆编码的影响。
+**English | [中文](README.zh-CN.md)**
 
-## 研究背景
+A PsychoPy-based closed-loop dual-task experiment platform investigating how cognitive load fluctuations affect visual working memory encoding in real time.
 
-双任务情境中，主任务认知负荷的实时波动如何影响副任务工作记忆编码，尚缺乏在线测量手段。DeBettencourt et al. (2019) 建立了基于 RT 的闭环注意监测范式，但其主任务为低知觉负荷的简单探测。当主任务替换为高认知负荷的算术验证时，RT 波动反映的是"任务投入程度"而非"注意水平"。
+## Background
 
-根据**负荷理论**（Load Theory, Lavie 1995/2004），高认知负荷占用中央执行资源，损害对非目标刺激的主动编码。因此，高投入（快 RT / 高正确率）可能反而预测更差的 WM 表现——与 DeBettencourt 的方向相反。初步数据（5 轮重复测量 + 2 名独立被试）一致支持这一反向模式。
+In dual-task paradigms, the relationship between moment-to-moment fluctuations in primary-task cognitive load and secondary-task working memory encoding remains largely unexplored with online measures. DeBettencourt et al. (2019) established a closed-loop attention monitoring paradigm based on RT, but their primary task was a low-perceptual-load simple detection. When the primary task demands high cognitive load (arithmetic verification), RT variability reflects **task engagement** rather than attentional level.
 
-## 实验设计
+According to **Load Theory** (Lavie 1995/2004), high cognitive load consumes central executive resources, impairing active encoding of non-target stimuli. Thus, high engagement (fast RT / high accuracy) may paradoxically predict *worse* WM performance — the opposite direction from DeBettencourt. Pilot data (5 repeated sessions + 2 independent subjects) consistently supports this reversed pattern.
 
-### 双任务结构
+## Experimental Design
 
-| 任务 | 内容 | 角色 |
-|------|------|------|
-| 算术验证（主任务） | 判断 `a × b = ans` 是否正确，F=正确 J=错误，限时 3s | 消耗中央执行资源 |
-| 颜色记忆（副任务） | 编码 6 个色块位置→颜色，3×3 九宫格鼠标回忆 | 测量 WM 编码质量 |
+### Dual-Task Structure
 
-### 参数
+| Task | Description | Role |
+|------|-------------|------|
+| Arithmetic verification (primary) | Judge `a × b = ans`, F=correct J=wrong, 3s timeout | Consume executive resources |
+| Color memory (secondary) | Encode 6 color positions → recall via 3×3 grid mouse click | Measure WM encoding |
 
-- 4 blocks × 80 trials（正式模式）/ 1 block × 999 trials（debug 模式）
-- 数学格式：`a × b`（a,b ∈ [2,9]，result ∈ [6,79]），真假各 50%
-- 假答案 delta 限制偶数（±2, ±4, ±6），防止奇偶性快捷策略
-- 算术阶段色块随机动态变化，数学阶段的色块暴露对探测编码无信息价值
-- 编码时间：1.0s（注视点变黄 → 色块固定显示）
-- 全程约 25-30 分钟
+### Parameters
 
-### 闭环触发：StateMonitor 算法
+- 4 blocks × 80 trials (full) / 1 block × 999 trials (debug)
+- Math format: `a × b` (a,b ∈ [2,9], result ∈ [6,79]), 50% true/false
+- False-answer delta constrained to even numbers (±2, ±4, ±6) — prevents parity-based shortcuts
+- Color blocks change dynamically during math phase — no informative encoding before probe
+- Encoding: 1.0s (fixation turns yellow → colors displayed)
+- Total duration: ~25-30 min
 
-累积 z-score（基线 30 试次） + 双速 ACC EWMA，实时量化认知状态：
+### StateMonitor Algorithm
+
+Cumulative z-score (30-trial baseline) + dual-speed ACC EWMA for real-time cognitive state quantification:
 
 ```
-探针评分 S = |Z_RT| × (1 + min(ACC_decline / 0.12, 2.0))
+Probe score S = |Z_RT| × (1 + min(ACC_decline / 0.12, 2.0))
 ```
 
-| 状态标签 | 条件 | 认知解释 |
-|----------|------|----------|
-| optimal | Z_RT < -1.1, ACC=1 | 快速正确 → 深度投入 |
-| cautious | Z_RT > 1.1, ACC_decline ≤ 0.03 | 慢速但正确 → 脱离/审慎 |
-| lapse | Z_RT > 1.1, ACC_decline > 0.03 | 慢速且下滑 → 注意脱漏 |
-| impulsive | Z_RT < -1.1, ACC=0 | 快速但错误 → 冲动 |
-| acc_decline | ACC_decline > 0.12 | 正确率持续下降 |
+| State Label | Condition | Interpretation |
+|-------------|-----------|---------------|
+| optimal | Z_RT < -1.1, ACC=1 | Fast + correct → deep engagement |
+| cautious | Z_RT > 1.1, ACC_decline ≤ 0.03 | Slow but correct → disengaged/cautious |
+| lapse | Z_RT > 1.1, ACC_decline > 0.03 | Slow + declining → attentional lapse |
+| impulsive | Z_RT < -1.1, ACC=0 | Fast + error → impulsive |
+| acc_decline | ACC_decline > 0.12 | Sustained accuracy drop |
 
-触发条件：S ≥ 1.1 + 冷却 ≥ 5 试次 + 每 block 预算 ≤ 10 次；S ≥ 4.0 紧急超驰。
+Trigger: S ≥ 1.1 + cooldown ≥ 5 trials + budget ≤ 10/block; emergency S ≥ 4.0 overrides cooldown.
 
-## 安装
+## Installation
 
 ```bash
 pip install -r requirements.txt
 ```
 
-核心依赖：`psychopy`, `numpy`, `scipy`。Python 3.10 推荐（详见 `.python-version`）。
+Core: `psychopy`, `numpy`, `scipy`. Python 3.10 recommended (see `.python-version`).
 
-分析脚本额外需 `pandas`, `matplotlib`（已包含在 requirements.txt 中）。
+Analysis extras: `pandas`, `matplotlib` (included in requirements.txt).
 
-## 使用
+## Usage
 
 ```bash
-# 调试模式：窗口化 1 block × 999 trials
+# Debug mode: windowed, 1 block × 999 trials
 python thinkWM.py debug
 
-# 正式模式：全屏 4 blocks × 80 trials
+# Full mode: fullscreen, 4 blocks × 80 trials
 python thinkWM.py
 ```
 
-启动后：
-1. 弹窗填写姓名和学号（仅确认身份）
-2. 3 屏指导语（空格翻页）
-3. 练习阶段（5 道数学 + 1 次探测后可跳过）
-4. 正式实验，block 间休息 ≥ 15s
-5. 自动保存数据并尝试上传（默认上传到 webhook.site 测试地址，如需更换请修改 _upload_csv() 中的 url）
+Startup flow:
+1. Dialog: enter name & student ID (identity confirmation only)
+2. 4 instruction screens (space to advance)
+3. Practice phase (5 math + 1 probe trials, skippable)
+4. Main experiment with inter-block rests (≥ 15s)
+5. Auto-save & attempt upload
 
-## 数据输出
+## Data Output
 
-`data/<学号>/<学号>_explog.csv`，28 列：
+`data/<subject_id>/<subject_id>_explog.csv`, 28 columns:
 
-| 列 | 说明 |
-|----|------|
-| Block, Trial | 组号和试次号 |
+| Column | Description |
+|--------|-------------|
+| Block, Trial | Block and trial number |
 | Trial_Type | math / probe |
-| State_Label | 触发时的认知状态标签 |
-| Equation | 数学等式字符串 |
-| Operand_A, B | 操作数 |
-| Math_Acc, Math_RT | 正确性（0/1）和反应时（s） |
-| RT_Mean5, RT_SD5, RT_CV5 | 滑动 5 试次 RT 窗口统计 |
-| ACC_Mean10 | 滑动 10 试次正确率 |
-| RT_Micro/Meso/Macro | 三速 EWMA（α=0.30/0.10/0.02） |
-| Z_RT | 累积 z-score |
-| Prev_Math_Acc, Prev_RT | 前次数学试次正确性和 RT |
-| Trials_Since_Probe | 距上次探测间隔试次数 |
-| Is_Probe, WM_Score | 是否为探测试次，WM 得分（/6） |
+| State_Label | Cognitive state at trigger |
+| Equation | Math equation string |
+| Operand_A, B | Operands |
+| Math_Acc, Math_RT | Accuracy (0/1) and reaction time (s) |
+| RT_Mean5, RT_SD5, RT_CV5 | Rolling 5-trial RT window |
+| ACC_Mean10 | Rolling 10-trial accuracy |
+| RT_Micro/Meso/Macro | Triple EWMA (α=0.30/0.10/0.02) |
+| Z_RT | Cumulative z-score |
+| Prev_Math_Acc, Prev_RT | Previous trial accuracy and RT |
+| Trials_Since_Probe | Trials since last probe |
+| Is_Probe, WM_Score | Probe trial flag, WM score (/6) |
 
-## 数据分析
+## Data Analysis
 
-### 命令行（快速报告）
+### CLI (quick report)
 
 ```bash
-# 单个被试完整报告
-python analysis/thinkwm_analysis.py 学号
+# Single subject
+python analysis/thinkwm_analysis.py subject_id
 
-# 多个被试对比
-python analysis/thinkwm_analysis.py 学号1 学号2
+# Multiple subjects
+python analysis/thinkwm_analysis.py subject_id1 subject_id2
 ```
 
-### 交互式（Python/ipython）
+### Interactive (Python/ipython)
 
 ```python
-from analysis.thinkwm_analysis import load_subject, diff_analysis
+from analysis.thinkwm_analysis import load_subject, wm_by_state
 
-# 加载数据
-df = load_subject('学号')
-
-# 按状态标签统计 WM
-from analysis.thinkwm_analysis import wm_by_state
-result = wm_by_state(df)
-
-# 脱离态 vs 投入态差异检验
-diff_analysis(df, subjects=['学号'])
+df = load_subject('subject_id')
+result = wm_by_state(df)       # WM by cognitive state
+diff_analysis(df)               # Engaged vs disengaged comparison
 ```
 
-分析功能：加载合并多 session 数据、WM 按状态分组统计、脱离/投入态差异检验、难度分层分析、post-error 分析。详细见 `analysis/thinkwm_analysis.py` 模块文档。
+Features: multi-session merge, WM-by-state stats, engaged/disengaged difference tests, difficulty-stratified analysis, post-error analysis.
 
-## 关键发现（初步数据）
+## Key Findings (Pilot Data)
 
-1. **反向模式**：脱离态（cautious/acc_decline）WM 一致高于投入态（optimal），方向与注意范式相反
-2. **难度调节**：效应由难题驱动（hard: Δ=+1.73, p=.028），easy 和 medium 不显著
-3. **|Z_RT| 不独立预测 WM**：r = -0.40 ~ 0.07
-4. **天花板效应**：高 WM 被试（009: 5.27/6）无状态区分度
-5. **Post-error 无 WM 影响**：Δ=+0.006, p=.73，但状态标签偏移（χ²=36.8, p<.0001）
+1. **Reversed pattern**: Disengaged states (cautious/acc_decline) show consistently higher WM than engaged (optimal) — opposite to attention-paradigm direction
+2. **Difficulty modulation**: Effect driven by hard problems (hard: Δ=+1.73, p=.028); easy/medium non-significant
+3. **|Z_RT| does not independently predict WM**: r = -0.40 ~ 0.07
+4. **Ceiling effect**: High-WM subject (009: 5.27/6) showed no state differentiation
+5. **No post-error WM effect**: Δ=+0.006, p=.73, but state labels shifted (χ²=36.8, p<.0001)
 
-见 `docs/latex/paper_outline.tex` 和 `analysis/` 获取完整分析。
+## Shortcuts
 
-## 快捷键
+| Key | Function |
+|-----|----------|
+| F | Equation correct |
+| J | Equation wrong |
+| ESC | Exit experiment (confirm dialog) |
+| Space | Advance instructions / skip practice |
 
-| 键 | 功能 |
-|----|------|
-| F | 等式正确 |
-| J | 等式错误 |
-| ESC | 退出实验（需确认） |
-| 空格 | 翻页 / 跳过练习 |
-
-## 测试
+## Tests
 
 ```bash
-python -m pytest tests/ -v    # 45 项，~1 秒
+python -m pytest tests/ -v    # 45 tests, ~1 sec
 ```
 
-- **StateMonitor 测试**（32 项）：初始化、z-score 计算、ACC EWMA、状态标签分类、触发逻辑、边界情况
-- **数学题生成测试**（13 项）：操作数范围、真假答案、假答案偶性校验、格式验证
+- **StateMonitor tests** (32): initialization, z-score, ACC EWMA, state labels, trigger logic, edge cases
+- **Math problem tests** (13): operand range, true/false answers, even-delta validation, format
 
-## 技术栈
+## Tech Stack
 
 - Python 3.10 + PsychoPy + NumPy + SciPy
-- 自动化测试：pytest 45 项（StateMonitor 32 项 + 数学题生成 13 项）
-- MockPsychopy 测试隔离
+- 45 pytest tests with MockPsychopy isolation
+- PyInstaller packaging (`build_exe.py`)
 
-## 项目结构
+## Project Structure
 
 ```
-thinkWM.py          — 主实验程序
-build_exe.py        — PyInstaller 构建脚本
-README.md           — 本文件
-data/               — 实验数据
-analysis/           — 分析脚本
+thinkWM.py              — Main experiment script
+build_exe.py            — PyInstaller build script
+README.md               — This file (English)
+README.zh-CN.md         — Chinese version
+requirements.txt        — Dependencies
+LICENSE                 — MIT License
+data/                   — Experiment data (gitignored)
+analysis/               — Analysis scripts
+tests/                  — pytest suite
 ```
 
-## 引用
+## Citation
 
-相关论文：DeBettencourt, M. T., Keene, P. A., Awh, E., & Vogel, E. K. (2019). Real-time monitoring of attention fluctuations in the visual working memory system. *Nature Human Behaviour*, 3(8), 792–800.
+DeBettencourt, M. T., Keene, P. A., Awh, E., & Vogel, E. K. (2019). Real-time monitoring of attention fluctuations in the visual working memory system. *Nature Human Behaviour*, 3(8), 792–800.
 
-## 许可
+## Disclaimer
 
-MIT License，详见 [LICENSE](LICENSE)。
+This project is **self-directed research** conducted independently. It has not been supervised, reviewed, or endorsed by any academic advisor or institution. The experimental design, analysis, and interpretations are solely the author's own work and may contain errors or oversights. **Not peer-reviewed.** Use the findings with appropriate caution.
+
+## License
+
+MIT License. See [LICENSE](LICENSE).
