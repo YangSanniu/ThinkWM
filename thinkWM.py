@@ -532,7 +532,7 @@ class ThinkWMTask:
                         sq.draw()
                     self.disp.win.flip()
 
-                wm_score = self.run_memory_test(current_colors)
+                self.run_memory_test(current_colors)
                 probe_count += 1
                 can_skip = math_count >= 5 and probe_count >= 1
                 self.disp.fixation.color = 'white'
@@ -555,7 +555,7 @@ class ThinkWMTask:
                 self.clock.reset()
 
                 keys = event.waitKeys(maxWait=DUR_MATH_TIMEOUT, keyList=['f', 'j', 'escape', 'space'])
-                rt = self.clock.getTime()
+                self.clock.getTime()
 
                 if keys and keys[0] == 'escape':
                     self.confirm_exit()
@@ -832,6 +832,25 @@ if __name__ == "__main__":
     # 命令行参数: python thinkWM.py debug 进入窗口化调试模式
     is_debug = 'debug' in sys.argv
 
+    # 启动提示（在 psychopy 加载前显示，让用户知道程序正在启动）
+    try:
+        import tkinter as tk
+        splash = tk.Tk()
+        splash.title("")
+        splash.overrideredirect(True)
+        splash.geometry("+{}+{}".format(
+            (splash.winfo_screenwidth() - 300) // 2,
+            (splash.winfo_screenheight() - 100) // 2))
+        splash_label = tk.Label(splash, text="thinkWM 实验程序启动中…", font=("", 16), padx=40, pady=30)
+        splash_label.pack()
+        splash.update()
+    except Exception:
+        splash = None  # 无 GUI 环境（如服务器）跳过
+
+    # 关闭启动提示
+    if splash:
+        splash.destroy()
+
     # 弹窗确认身份信息
     dlg = gui.Dlg(title='实验信息确认')
     dlg.addText('姓名和学号为必填项。仅作确认身份，不会泄漏个人信息。')
@@ -841,8 +860,9 @@ if __name__ == "__main__":
     if not dlg.OK:
         core.quit()
 
-    student_name = result[0].strip()
-    student_id = result[1].strip()
+    # dlg.OK 为 True 时 result 必有值
+    student_name = result[0].strip() if result else ""
+    student_id = result[1].strip() if result else ""
     if not student_name or not student_id:
         print("姓名和学号不能为空")
         core.quit()
